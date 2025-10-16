@@ -1,0 +1,28 @@
+{
+  "name": "knue-www-rss-parser-cf",
+  "version": "1.0.0",
+  "description": "KNUE RSS parser for Cloudflare Workers",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --test-scheduled",
+    "deploy": "wrangler deploy",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage"
+  },
+  "keywords": ["cloudflare", "workers", "rss", "parser"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "date-fns-tz": "^3.2.0",
+    "fast-xml-parser": "^4.5.0",
+    "turndown": "^7.2.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "wrangler": "^3.95.0"
+  }
+}
