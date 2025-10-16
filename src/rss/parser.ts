@@ -28,7 +28,8 @@ export function parseRSS(xml: string): RSSFeed {
     ignoreAttributes: false,
     cdataPropName: '_cdata',
     parseTagValue: false,
-    trimValues: true
+    trimValues: true,
+    processEntities: true
   });
 
   let parsed;
@@ -50,28 +51,29 @@ export function parseRSS(xml: string): RSSFeed {
 
   const rawItems = Array.isArray(channel.item) ? channel.item : [channel.item].filter(Boolean);
 
-  const items: RSSItem[] = rawItems.map((item: any) => {
+  const items: RSSItem[] = rawItems.map((item: unknown) => {
+    const obj = item as Record<string, unknown>;
     const attachments: RSSAttachment[] = [];
-    
+
     let index = 1;
-    while (item[`filename${index}`]) {
+    while (obj[`filename${index}`]) {
       attachments.push({
-        filename: extractCDATA(item[`filename${index}`]),
-        downloadUrl: extractCDATA(item[`url${index}`]),
-        previewUrl: extractCDATA(item[`preview${index}`])
+        filename: extractCDATA(obj[`filename${index}`]),
+        downloadUrl: extractCDATA(obj[`url${index}`]),
+        previewUrl: extractCDATA(obj[`preview${index}`])
       });
       index++;
     }
 
-    const link = extractCDATA(item.link);
+    const link = extractCDATA(obj.link);
     const articleId = extractArticleId(link);
 
     return {
-      title: extractCDATA(item.title),
+      title: extractCDATA(obj.title),
       link,
-      description: extractCDATA(item.description),
-      pubDate: extractCDATA(item.pubDate),
-      department: extractCDATA(item.department) || '',
+      description: extractCDATA(obj.description),
+      pubDate: extractCDATA(obj.pubDate),
+      department: extractCDATA(obj.department) || '',
       attachments,
       articleId
     };
@@ -85,11 +87,36 @@ export function parseRSS(xml: string): RSSFeed {
   };
 }
 
-function extractCDATA(value: any): string {
+function extractCDATA(value: unknown): string {
   if (!value) return '';
-  if (typeof value === 'string') return value.trim();
-  if (value._cdata) return value._cdata.trim();
-  return String(value).trim();
+  let result = '';
+  if (typeof value === 'string') result = value.trim();
+  else if (typeof value === 'object' && value !== null && '_cdata' in value) {
+    const obj = value as Record<string, unknown>;
+    if (typeof obj._cdata === 'string') {
+      result = obj._cdata.trim();
+    }
+  } else {
+    result = String(value).trim();
+  }
+  return decodeHTMLEntities(result);
+}
+
+function decodeHTMLEntities(text: string): string {
+  const entities: Record<string, string> = {
+    '&lt;': '<',
+    '&gt;': '>',
+    '&amp;': '&',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&apos;': "'"
+  };
+  
+  let result = text;
+  for (const [entity, char] of Object.entries(entities)) {
+    result = result.replaceAll(entity, char);
+  }
+  return result;
 }
 
 function extractArticleId(link: string): string {
