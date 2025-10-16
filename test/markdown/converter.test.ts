@@ -14,7 +14,8 @@ describe('convertToMarkdown', () => {
         pubDate: '2025-10-16',
         department: '인권센터',
         description: '<p>교제폭력 및 성범죄를 예방하고 안전한 캠퍼스 문화를 조성하고자 합니다.</p>',
-        attachments: []
+        attachments: [],
+      articleId: '77561'
       },
       {
         title: '2024학년도 후기 학위수여식 안내',
@@ -33,7 +34,8 @@ describe('convertToMarkdown', () => {
             downloadUrl: 'https://www.knue.ac.kr/www/downloadBbsFile.do?atchmnflNo=76745',
             previewUrl: 'https://www.knue.ac.kr/www/previewBbsFile.do?atchmnflNo=76745'
           }
-        ]
+        ],
+        articleId: '77500'
       }
     ]
   };
