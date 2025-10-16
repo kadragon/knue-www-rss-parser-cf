@@ -7,10 +7,19 @@
   "scripts": {
     "dev": "wrangler dev --test-scheduled",
     "deploy": "wrangler deploy",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "typecheck": "tsc --noEmit",
     "test": "vitest",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "prepare": "husky"
   },
-  "keywords": ["cloudflare", "workers", "rss", "parser"],
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "rss",
+    "parser"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -21,6 +30,11 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241127.0",
     "@types/node": "^22.10.2",
+    "@types/turndown": "^5.0.5",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.0",
+    "husky": "^9.1.6",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8",
     "wrangler": "^3.95.0"
