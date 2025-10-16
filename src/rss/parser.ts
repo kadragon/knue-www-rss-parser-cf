@@ -87,36 +87,33 @@ export function parseRSS(xml: string): RSSFeed {
   };
 }
 
+const HTML_ENTITIES: Record<string, string> = {
+  '&lt;': '<',
+  '&gt;': '>',
+  '&amp;': '&',
+  '&quot;': '"',
+  '&#39;': "'",
+  '&apos;': "'"
+};
+
+const ENTITY_REGEX = new RegExp(Object.keys(HTML_ENTITIES).join('|'), 'g');
+
 function extractCDATA(value: unknown): string {
   if (!value) return '';
-  let result = '';
-  if (typeof value === 'string') result = value.trim();
-  else if (typeof value === 'object' && value !== null && '_cdata' in value) {
-    const obj = value as Record<string, unknown>;
-    if (typeof obj._cdata === 'string') {
-      result = obj._cdata.trim();
-    }
-  } else {
-    result = String(value).trim();
+
+  if (typeof value === 'string') {
+    return decodeHTMLEntities(value.trim());
   }
-  return decodeHTMLEntities(result);
+
+  if (typeof value === 'object' && value !== null && '_cdata' in value && typeof (value as Record<string, unknown>)._cdata === 'string') {
+    return decodeHTMLEntities(((value as Record<string, unknown>)._cdata as string).trim());
+  }
+
+  return decodeHTMLEntities(String(value).trim());
 }
 
 function decodeHTMLEntities(text: string): string {
-  const entities: Record<string, string> = {
-    '&lt;': '<',
-    '&gt;': '>',
-    '&amp;': '&',
-    '&quot;': '"',
-    '&#39;': "'",
-    '&apos;': "'"
-  };
-  
-  let result = text;
-  for (const [entity, char] of Object.entries(entities)) {
-    result = result.replaceAll(entity, char);
-  }
-  return result;
+  return text.replace(ENTITY_REGEX, (match) => HTML_ENTITIES[match] || match);
 }
 
 function extractArticleId(link: string): string {
