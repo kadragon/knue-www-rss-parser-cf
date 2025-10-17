@@ -9,9 +9,75 @@ interface Env {
   BOARD_IDS: string;
 }
 
+interface BatchResult {
+  totalSaved: number;
+  totalErrors: number;
+}
+
+async function saveArticlesToR2(
+  bucket: R2Bucket,
+  boardId: string,
+  markdown: string,
+  item: { pubDate: string; articleId: string }
+): Promise<{ saved: boolean; skipped: boolean }> {
+  const result = await writeToR2(bucket, markdown, boardId, item.pubDate, item.articleId);
+  return {
+    saved: result.saved,
+    skipped: !result.saved
+  };
+}
+
+async function processBoardBatch(
+  boardIds: string[],
+  env: Env,
+  now: Date
+): Promise<BatchResult> {
+  let totalSaved = 0;
+  let totalErrors = 0;
+
+  for (const boardId of boardIds) {
+    try {
+      const url = `${env.RSS_FEED_BASE_URL}?bbsNo=${boardId}`;
+      console.log(`\n🔄 [Board ${boardId}] Fetching RSS...`);
+
+      const xml = await fetchRSS(url, {
+        timeoutMs: 5000,
+        maxRetries: 3,
+        backoffMultiplier: 2
+      });
+      console.log(`✓ [Board ${boardId}] RSS feed fetched`);
+
+      const feed = parseRSS(xml);
+      console.log(`✓ [Board ${boardId}] Parsed ${feed.items.length} items`);
+
+      let savedCount = 0;
+      let skippedCount = 0;
+
+      for (const item of feed.items) {
+        const markdown = convertToMarkdown({ ...feed, items: [item] }, now);
+        const { saved, skipped } = await saveArticlesToR2(env.RSS_STORAGE, boardId, markdown, item);
+
+        if (saved) {
+          savedCount++;
+        } else if (skipped) {
+          skippedCount++;
+        }
+      }
+
+      console.log(`✓ [Board ${boardId}] Saved ${savedCount} articles, skipped ${skippedCount} duplicates`);
+      totalSaved += savedCount;
+    } catch (error) {
+      totalErrors++;
+      console.error(`❌ [Board ${boardId}] Failed:`, error instanceof Error ? error.message : error);
+    }
+  }
+
+  return { totalSaved, totalErrors };
+}
+
 export default {
   async scheduled(
-    controller: ScheduledController,
+    _controller: ScheduledController,
     env: Env,
     _ctx: ExecutionContext
   ): Promise<void> {
@@ -24,55 +90,7 @@ export default {
       const boardIds = env.BOARD_IDS.split(',').map(id => id.trim());
       console.log(`📋 Processing ${boardIds.length} boards: ${boardIds.join(', ')}`);
 
-      let totalSaved = 0;
-      let totalErrors = 0;
-
-      for (const boardId of boardIds) {
-        try {
-          const url = `${env.RSS_FEED_BASE_URL}?bbsNo=${boardId}`;
-          console.log(`\n🔄 [Board ${boardId}] Fetching RSS...`);
-
-          const xml = await fetchRSS(url, {
-            timeoutMs: 5000,
-            maxRetries: 3,
-            backoffMultiplier: 2
-          });
-          console.log(`✓ [Board ${boardId}] RSS feed fetched`);
-
-          const feed = parseRSS(xml);
-          console.log(`✓ [Board ${boardId}] Parsed ${feed.items.length} items`);
-
-          let savedCount = 0;
-          let skippedCount = 0;
-          
-          for (const item of feed.items) {
-            const markdown = convertToMarkdown(
-              { ...feed, items: [item] },
-              now
-            );
-            
-            const result = await writeToR2(
-              env.RSS_STORAGE,
-              markdown,
-              boardId,
-              item.pubDate,
-              item.articleId
-            );
-            
-            if (result.saved) {
-              savedCount++;
-            } else {
-              skippedCount++;
-            }
-          }
-          
-          console.log(`✓ [Board ${boardId}] Saved ${savedCount} articles, skipped ${skippedCount} duplicates`);
-          totalSaved += savedCount;
-        } catch (error) {
-          totalErrors++;
-          console.error(`❌ [Board ${boardId}] Failed:`, error instanceof Error ? error.message : error);
-        }
-      }
+      const { totalSaved, totalErrors } = await processBoardBatch(boardIds, env, now);
 
       const duration = Date.now() - startTime;
       console.log(`\n✅ RSS archival completed in ${duration}ms`);
@@ -84,14 +102,14 @@ export default {
     } catch (error) {
       const duration = Date.now() - startTime;
       console.error(`❌ RSS archival job failed after ${duration}ms:`, error);
-      
+
       if (error instanceof Error) {
         console.error('Error details:', {
           message: error.message,
           stack: error.stack
         });
       }
-      
+
       throw error;
     }
   }
