@@ -10,7 +10,7 @@
     "mode": "smart"
   },
   "triggers": {
-    "crons": ["0 1 * * *"]
+    "crons": ["0 16 * * *"]
   },
   "r2_buckets": [
     {
