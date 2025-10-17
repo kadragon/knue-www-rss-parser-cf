@@ -4,7 +4,7 @@ KNUE 게시판 RSS 피드를 파싱하여 Markdown 파일로 Cloudflare R2에 �
 
 ## 기능
 
-- 매일 새벽 1시(UTC)에 자동 실행 (한국시간 오전 10시)
+- 매일 새벽 1시(Asia/Seoul)에 자동 실행 (UTC 4PM)
 - **다중 게시판 지원** (6~10개 게시판 동시 처리)
 - KNUE RSS 피드 가져오기 및 파싱
 - HTML 콘텐츠를 Markdown으로 변환
@@ -153,7 +153,7 @@ npm run deploy
 
 ## Cron 스케줄
 
-- `0 1 * * *` - 매일 1:00 AM UTC (10:00 AM KST)
+- `0 16 * * *` - 매일 1:00 AM Asia/Seoul (UTC 4PM 전날)
 - 약 6개 게시판 × 평균 5개 게시글 = 약 30개 파일 저장
 
 ## 라이선스
