@@ -66,11 +66,18 @@ npx wrangler r2 bucket create knue-rss-archive
 
 ### 환경 변수
 
-`wrangler.jsonc`에서 설정:
-
+**프로덕션 설정** (`wrangler.jsonc`에서 설정):
 - `RSS_FEED_BASE_URL`: KNUE RSS 피드 기본 URL (`https://www.knue.ac.kr/rssBbsNtt.do`)
 - `BOARD_IDS`: 쉼표로 구분된 게시판 ID 목록 (예: `"25,26,11,207,28,256"`)
 - `RSS_STORAGE`: R2 버킷 바인딩 (`knue-vectorstore`)
+
+**로컬 개발 환경**:
+1. `.env.example`를 `.env.local`로 복사:
+   ```bash
+   cp .env.example .env.local
+   ```
+2. 필요시 값 수정 (기본값은 wrangler.jsonc와 동일)
+3. 로컬 테스트 시 자동으로 로드됨
 
 ## 개발
 
