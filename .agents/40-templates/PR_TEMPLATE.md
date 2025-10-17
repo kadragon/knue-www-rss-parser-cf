@@ -1,6 +1,6 @@
 # [Prefix] Title
 
-> Brief description in Korean
+> Brief description of changes and motivation
 
 ---
 

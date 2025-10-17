@@ -40,8 +40,9 @@ Their `status` becomes `deprecated`, and supersession chains must be updated.
 
 ## Language Policy
 
-- **All `.agents/` content:** English
-- **All user-facing deliverables:** Korean
+- **All `.agents/`, `.tasks/`, `.spec/` content:** English
+- **All commits, PR titles/descriptions:** English
+- **All user-facing reports and responses:** Korean
 - Internal reasoning stays hidden; only **summarized conclusions** are returned.
 
 ---
