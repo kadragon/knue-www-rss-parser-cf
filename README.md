@@ -80,15 +80,38 @@ npx wrangler r2 bucket create knue-rss-archive
 # 유닛 테스트 실행
 npm test
 
+# 테스트 커버리지 확인
+npm run test:coverage
+
 # Cron 트리거 시뮬레이션
 npm run dev
-curl "http://localhost:8787/__scheduled?cron=0+1+*+*+*"
+curl "http://localhost:8787/__scheduled?cron=0+16+*+*+*"
 ```
 
 ### 배포
 
 ```bash
 npm run deploy
+```
+
+### CI/CD 파이프라인
+
+GitHub Actions를 통해 자동으로 검증 및 배포됩니다:
+
+- **Test Workflow** (`.github/workflows/test.yml`)
+  - PR과 main branch push에 트리거
+  - Node.js 18, 20 버전 테스트
+  - Lint, Type checking, Unit tests, Coverage thresholds 검증
+
+- **Deploy Workflow** (`.github/workflows/deploy.yml`)
+  - main branch push에만 트리거 (Test 통과 후)
+  - 자동 배포 to Cloudflare Workers
+  - 필요한 secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
+
+**필수 Repository Secrets:**
+```
+CLOUDFLARE_API_TOKEN       # Cloudflare API token
+CLOUDFLARE_ACCOUNT_ID      # Cloudflare account ID
 ```
 
 ## 테스트 커버리지
