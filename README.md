@@ -121,6 +121,30 @@ CLOUDFLARE_API_TOKEN       # Cloudflare API token
 CLOUDFLARE_ACCOUNT_ID      # Cloudflare account ID
 ```
 
+### 신뢰성 & Observability
+
+**Retry Logic**
+- RSS 피드 fetch 시 transient 오류에 대한 자동 재시도
+- Exponential backoff: 1s → 2s → 4s (최대 10s)
+- 최대 3회 재시도 (기본값)
+- 처리 상황: HTTP 429, 503, timeout, network errors
+
+**Structured Logging**
+- 각 단계별 진행 상황 로그 (fetch, parse, save)
+- 성공/실패 통계 및 요약
+- 에러 발생 시 상세 정보 (board ID, error message, stack trace)
+- 재시도 시도 여부 및 결과 기록
+
+**로그 예시:**
+```
+🔄 [Board 25] Fetching RSS...
+⚠ RSS fetch attempt 1 failed: HTTP 503. Retrying in 1000ms...
+✓ RSS fetch succeeded on attempt 2/3
+✓ [Board 25] RSS feed fetched
+✓ [Board 25] Parsed 5 items
+✓ [Board 25] Saved 5 articles, skipped 0 duplicates
+```
+
 ## 테스트 커버리지
 
 - RSS Fetcher: 5 tests

@@ -32,7 +32,11 @@ export default {
           const url = `${env.RSS_FEED_BASE_URL}?bbsNo=${boardId}`;
           console.log(`\n🔄 [Board ${boardId}] Fetching RSS...`);
 
-          const xml = await fetchRSS(url);
+          const xml = await fetchRSS(url, {
+            timeoutMs: 5000,
+            maxRetries: 3,
+            backoffMultiplier: 2
+          });
           console.log(`✓ [Board ${boardId}] RSS feed fetched`);
 
           const feed = parseRSS(xml);
