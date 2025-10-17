@@ -14,11 +14,17 @@ export function htmlToMarkdown(html: string): string {
     strongDelimiter: '**'
   });
 
-  (globalThis as unknown as { document: typeof document }).document = document;
+  const globalWithDocument = globalThis as { document?: typeof document };
+  const originalDocument = globalWithDocument.document;
+  globalWithDocument.document = document;
 
   try {
     return turndownService.turndown(html).trim();
   } finally {
-    delete (globalThis as unknown as { document?: typeof document }).document;
+    if (originalDocument !== undefined) {
+      globalWithDocument.document = originalDocument;
+    } else {
+      delete globalWithDocument.document;
+    }
   }
 }
