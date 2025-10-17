@@ -4,7 +4,7 @@ KNUE 게시판 RSS 피드를 파싱하여 Markdown 파일로 Cloudflare R2에 �
 
 ## 기능
 
-- 매일 새벽 1시(UTC)에 자동 실행 (한국시간 오전 10시)
+- 매일 새벽 1시(Asia/Seoul)에 자동 실행 (UTC 4PM)
 - **다중 게시판 지원** (6~10개 게시판 동시 처리)
 - KNUE RSS 피드 가져오기 및 파싱
 - HTML 콘텐츠를 Markdown으로 변환
@@ -66,11 +66,18 @@ npx wrangler r2 bucket create knue-rss-archive
 
 ### 환경 변수
 
-`wrangler.jsonc`에서 설정:
-
+**프로덕션 설정** (`wrangler.jsonc`에서 설정):
 - `RSS_FEED_BASE_URL`: KNUE RSS 피드 기본 URL (`https://www.knue.ac.kr/rssBbsNtt.do`)
 - `BOARD_IDS`: 쉼표로 구분된 게시판 ID 목록 (예: `"25,26,11,207,28,256"`)
 - `RSS_STORAGE`: R2 버킷 바인딩 (`knue-vectorstore`)
+
+**로컬 개발 환경**:
+1. `.env.example`를 `.env.local`로 복사:
+   ```bash
+   cp .env.example .env.local
+   ```
+2. 필요시 값 수정 (기본값은 wrangler.jsonc와 동일)
+3. 로컬 테스트 시 자동으로 로드됨
 
 ## 개발
 
@@ -80,15 +87,42 @@ npx wrangler r2 bucket create knue-rss-archive
 # 유닛 테스트 실행
 npm test
 
+# 테스트 커버리지 확인
+npm run test:coverage
+
 # Cron 트리거 시뮬레이션
 npm run dev
-curl "http://localhost:8787/__scheduled?cron=0+1+*+*+*"
+curl "http://localhost:8787/__scheduled?cron=0+16+*+*+*"
 ```
 
 ### 배포
 
 ```bash
 npm run deploy
+```
+
+### 신뢰성 & Observability
+
+**Retry Logic**
+- RSS 피드 fetch 시 transient 오류에 대한 자동 재시도
+- Exponential backoff: 1s → 2s → 4s (최대 10s)
+- 최대 3회 재시도 (기본값)
+- 처리 상황: HTTP 429, 503, timeout, network errors
+
+**Structured Logging**
+- 각 단계별 진행 상황 로그 (fetch, parse, save)
+- 성공/실패 통계 및 요약
+- 에러 발생 시 상세 정보 (board ID, error message, stack trace)
+- 재시도 시도 여부 및 결과 기록
+
+**로그 예시:**
+```
+🔄 [Board 25] Fetching RSS...
+⚠ RSS fetch attempt 1 failed: HTTP 503. Retrying in 1000ms...
+✓ RSS fetch succeeded on attempt 2/3
+✓ [Board 25] RSS feed fetched
+✓ [Board 25] Parsed 5 items
+✓ [Board 25] Saved 5 articles, skipped 0 duplicates
 ```
 
 ## 테스트 커버리지
@@ -153,7 +187,7 @@ npm run deploy
 
 ## Cron 스케줄
 
-- `0 1 * * *` - 매일 1:00 AM UTC (10:00 AM KST)
+- `0 16 * * *` - 매일 1:00 AM Asia/Seoul (UTC 4PM 전날)
 - 약 6개 게시판 × 평균 5개 게시글 = 약 30개 파일 저장
 
 ## 라이선스

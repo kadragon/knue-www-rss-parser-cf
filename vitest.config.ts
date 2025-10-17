@@ -7,7 +7,13 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules/', 'test/']
+      exclude: ['node_modules/', 'test/', 'vitest.config.ts'],
+      thresholds: {
+        lines: 90,
+        functions: 90,
+        branches: 75,
+        statements: 90
+      }
     }
   }
 });

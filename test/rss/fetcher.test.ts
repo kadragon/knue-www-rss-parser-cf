@@ -4,6 +4,8 @@ import { fetchRSS } from '../../src/rss/fetcher';
 describe('fetchRSS', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.clearAllTimers();
+    vi.useFakeTimers();
   });
 
   it('should fetch RSS from valid URL', async () => {
@@ -21,39 +23,63 @@ describe('fetchRSS', () => {
     }));
   });
 
-  it('should handle HTTP 404 error', async () => {
+  it('should handle HTTP 404 error (non-transient)', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
       statusText: 'Not Found'
     });
 
-    await expect(fetchRSS('https://example.com/rss')).rejects.toThrow('HTTP 404: Not Found');
+    await expect(fetchRSS('https://example.com/rss', { maxRetries: 2 })).rejects.toThrow('HTTP 404: Not Found');
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('should handle HTTP 500 error', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      statusText: 'Internal Server Error'
-    });
+  it('should retry on transient HTTP 503 error', async () => {
+    const mockXml = '<?xml version="1.0"?><rss></rss>';
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        statusText: 'Service Unavailable'
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => mockXml
+      });
 
-    await expect(fetchRSS('https://example.com/rss')).rejects.toThrow('HTTP 500: Internal Server Error');
+    const promise = fetchRSS('https://example.com/rss', { maxRetries: 2 });
+    
+    await vi.advanceTimersByTimeAsync(1000);
+    const result = await promise;
+    
+    expect(result).toBe(mockXml);
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it('should handle network timeout', async () => {
-    global.fetch = vi.fn().mockImplementation(() => 
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 100)
-      )
-    );
+  it('should retry on network timeout (transient error)', async () => {
+    const mockXml = '<?xml version="1.0"?><rss></rss>';
+    global.fetch = vi.fn()
+      .mockRejectedValueOnce(new Error('Request timeout after 5000ms'))
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => mockXml
+      });
 
-    await expect(fetchRSS('https://example.com/rss')).rejects.toThrow();
-  }, 10000);
+    const promise = fetchRSS('https://example.com/rss', { maxRetries: 2 });
+    
+    await vi.advanceTimersByTimeAsync(1000);
+    const result = await promise;
+    
+    expect(result).toBe(mockXml);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
 
-  it('should handle network errors', async () => {
+  it('should handle network errors without retry', async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-    await expect(fetchRSS('https://example.com/rss')).rejects.toThrow('Network error');
+    const promise = fetchRSS('https://example.com/rss', { maxRetries: 0 });
+    
+    await expect(promise).rejects.toThrow('Network error');
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
