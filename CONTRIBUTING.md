@@ -120,8 +120,8 @@ Please ensure .env, .env.local, and sensitive credentials are not committed
 ```
 
 ### Dependency Security
-- `npm audit` runs in CI/CD pipeline (audit-level: moderate)
 - Dependencies must have no moderate or higher vulnerabilities
+- Run `npm audit` locally to check: `npm audit --audit-level=moderate`
 - Regularly update dependencies: `npm update`
 
 ### Code Review
@@ -191,25 +191,14 @@ npm run test:coverage
 
 ---
 
-## CI/CD Pipeline
+## Deployment
 
-### Automated Checks
-On every push and PR:
-1. **Test workflow** (`.github/workflows/test.yml`)
-   - Lint & type checking
-   - Dependency audit
-   - Unit & integration tests
-   - Coverage validation
-
-2. **Deploy workflow** (`.github/workflows/deploy.yml`)
-   - Runs on `main` branch only (after tests pass)
-   - Deploys to Cloudflare Workers
-
-### Repository Secrets (Required for Deploy)
+Deployment is handled manually via Cloudflare through the Wrangler CLI:
+```bash
+npm run deploy
 ```
-CLOUDFLARE_API_TOKEN       # Cloudflare API authentication
-CLOUDFLARE_ACCOUNT_ID      # Cloudflare account identifier
-```
+
+This requires Cloudflare credentials configured locally (via `wrangler login` or environment variables).
 
 ---
 
