@@ -79,7 +79,7 @@ export function convertToMarkdown(feed: RSSFeed, generatedAt: Date): string {
 
     const previewContents = (item.attachments ?? [])
       .map(attachment => attachment.previewContent?.trim())
-      .filter((content): content is string => !!content && content.length > 0);
+      .filter((content): content is string => !!content);
 
     if (previewContents.length > 0) {
       lines.push('### 미리보기');
