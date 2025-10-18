@@ -21,6 +21,8 @@ export interface RSSAttachment {
   filename: string;
   downloadUrl: string;
   previewUrl: string;
+  previewId?: string;
+  previewContent?: string;
 }
 
 export function parseRSS(xml: string): RSSFeed {
@@ -57,10 +59,12 @@ export function parseRSS(xml: string): RSSFeed {
 
     let index = 1;
     while (obj[`filename${index}`]) {
+      const previewUrl = extractCDATA(obj[`preview${index}`]);
       attachments.push({
         filename: extractCDATA(obj[`filename${index}`]),
         downloadUrl: extractCDATA(obj[`url${index}`]),
-        previewUrl: extractCDATA(obj[`preview${index}`])
+        previewUrl,
+        previewId: extractAtchmnflNo(previewUrl)
       });
       index++;
     }
@@ -119,4 +123,13 @@ function decodeHTMLEntities(text: string): string {
 function extractArticleId(link: string): string {
   const match = link.match(/nttNo=(\d+)/);
   return match ? match[1] : 'unknown';
+}
+
+export function extractAtchmnflNo(previewUrl: string): string | undefined {
+  if (!previewUrl) {
+    return undefined;
+  }
+
+  const match = previewUrl.match(/atchmnflNo=(\d+)/);
+  return match ? match[1] : undefined;
 }

@@ -20,6 +20,7 @@
   ],
   "vars": {
     "RSS_FEED_BASE_URL": "https://www.knue.ac.kr/rssBbsNtt.do",
-    "BOARD_IDS": "25,26,11,207,28,256"
+    "BOARD_IDS": "25,26,11,207,28,256",
+    "PREVIEW_PARSER_BASE_URL": "https://knue-www-preview-parser-cf.kangdongouk.workers.dev/"
   }
 }

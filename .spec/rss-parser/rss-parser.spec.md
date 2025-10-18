@@ -78,6 +78,12 @@ Worker application that:
 **Description:** {feed-description}  
 **Generated:** {timestamp-utc} ({timestamp-kst})
 
+**Preview URLs:**
+- filename1: preview-url1
+
+**Download URLs:**
+- filename1: download-url1
+
 ---
 
 ## [Item Title](item-link)
@@ -87,18 +93,22 @@ Worker application that:
 {html-as-markdown-content}
 
 ### 첨부파일
-- [filename1](download-url1)
-- [filename2](download-url2)
+- download-url1
+- download-url2
 
 ---
 ```
 
 **Rules:**
+- When one or more attachments provide `previewUrl`, list unique entries under a `**Preview URLs:**` section using the format `filename: url`.
+- Always list download links under a `**Download URLs:**` section using the format `filename: url`.
 - Feed metadata at top (title, source, description, timestamp)
 - Each item as H2 section
 - HTML description converted to Markdown (via Turndown)
 - Attachments section omitted if no files
+- When attachments exist, render download URLs as plain markdown bullets (no link label).
 - Department line omitted if empty
+- If preview content is available (fetched via preview worker), insert a `### 미리보기` section before attachments and append each preview block verbatim (already Markdown-formatted by the worker).
 - Sections separated by `---`
 
 ### AC-5: R2 Storage
