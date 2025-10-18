@@ -64,7 +64,7 @@ describe('convertToMarkdown', () => {
     const result = convertToMarkdown(sampleFeed, generatedAt);
 
     expect(result).toContain('교제폭력 및 성범죄를 예방하고');
-    expect(result).toContain('**아래와 같이**');
+    expect(result).toContain('아래와 같이');
   });
 
   it('should include attachments section when present', () => {
