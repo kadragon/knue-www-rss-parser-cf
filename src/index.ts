@@ -1,8 +1,8 @@
 import { fetchRSS } from './rss/fetcher';
-import { parseRSS, RSSItem, RSSAttachment } from './rss/parser';
+import { parseRSS } from './rss/parser';
 import { convertToMarkdown } from './markdown/converter';
 import { writeToR2 } from './storage/r2-writer';
-import { fetchPreviewContent } from './preview/fetcher';
+import { enrichItemWithPreview, getPreviewConfig } from './rss/enricher';
 
 interface Env {
   RSS_STORAGE: R2Bucket;
@@ -28,60 +28,6 @@ async function saveArticlesToR2(
     saved: result.saved,
     skipped: !result.saved
   };
-}
-
-interface PreviewConfig {
-  baseUrl: string;
-  token: string;
-}
-
-async function enrichItemWithPreview(
-  item: RSSItem,
-  previewConfig: PreviewConfig | null,
-  boardId: string
-): Promise<RSSItem> {
-  if (!previewConfig || !item.attachments || item.attachments.length === 0) {
-    return item;
-  }
-
-  const enrichedAttachments: RSSAttachment[] = [];
-
-  for (const attachment of item.attachments) {
-    if (!attachment.previewId) {
-      enrichedAttachments.push(attachment);
-      continue;
-    }
-
-    try {
-      const previewContent = await fetchPreviewContent(attachment.previewId, previewConfig);
-      enrichedAttachments.push({
-        ...attachment,
-        previewContent
-      });
-    } catch (error) {
-      console.error(
-        `⚠ [Board ${boardId}] Failed to fetch preview for attachment ${attachment.previewId}:`,
-        error instanceof Error ? error.message : error
-      );
-      enrichedAttachments.push(attachment);
-    }
-  }
-
-  return {
-    ...item,
-    attachments: enrichedAttachments
-  };
-}
-
-function getPreviewConfig(env: Env): PreviewConfig | null {
-  if (env.PREVIEW_PARSER_BASE_URL && env.PREVIEW_PARSER_TOKEN) {
-    return {
-      baseUrl: env.PREVIEW_PARSER_BASE_URL,
-      token: env.PREVIEW_PARSER_TOKEN
-    };
-  }
-
-  return null;
 }
 
 async function processBoardBatch(
@@ -110,7 +56,7 @@ async function processBoardBatch(
       const previewConfig = getPreviewConfig(env);
 
       const itemsWithPreview = await Promise.all(
-        feed.items.map(item => enrichItemWithPreview(item, previewConfig, boardId))
+        feed.items.map(item => enrichItemWithPreview(item, previewConfig, { boardId }))
       );
 
       let savedCount = 0;
