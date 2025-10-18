@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
-    "prepare": "husky"
+    "prepare": "husky",
+    "export:item": "tsx scripts/export-board-item.ts"
   },
   "keywords": [
     "cloudflare",
@@ -36,6 +37,7 @@
     "@vitest/coverage-v8": "^3.2.4",
     "eslint": "^8.57.0",
     "husky": "^9.1.6",
+    "tsx": "^4.20.6",
     "typescript": "^5.7.2",
     "vitest": "^3.2.4",
     "wrangler": "^4.43.0"

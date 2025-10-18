@@ -44,7 +44,8 @@ describe('parseRSS', () => {
     expect(thirdItem.attachments[0]).toEqual({
       filename: '공지.pdf',
       downloadUrl: 'https://www.knue.ac.kr/www/downloadBbsFile.do?atchmnflNo=76700',
-      previewUrl: 'https://www.knue.ac.kr/www/previewBbsFile.do?atchmnflNo=76700'
+      previewUrl: 'https://www.knue.ac.kr/www/previewBbsFile.do?atchmnflNo=76700',
+      previewId: '76700'
     });
   });
 
@@ -84,5 +85,13 @@ describe('parseRSS', () => {
     expect(result.items[0].articleId).toBe('77561');
     expect(result.items[1].articleId).toBe('77500');
     expect(result.items[2].articleId).toBe('77400');
+  });
+
+  it('should derive preview id from previewUrl', () => {
+    const result = parseRSS(fixtureXml);
+
+    const attachments = result.items[1].attachments;
+    expect(attachments[0].previewId).toBe('76744');
+    expect(attachments[1].previewId).toBe('76745');
   });
 });

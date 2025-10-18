@@ -15,7 +15,7 @@ describe('convertToMarkdown', () => {
         department: '인권센터',
         description: '<p>교제폭력 및 성범죄를 예방하고 안전한 캠퍼스 문화를 조성하고자 합니다.</p>',
         attachments: [],
-      articleId: '77561'
+        articleId: '77561'
       },
       {
         title: '2024학년도 후기 학위수여식 안내',
@@ -27,12 +27,14 @@ describe('convertToMarkdown', () => {
           {
             filename: '행사 알림.jpg',
             downloadUrl: 'https://www.knue.ac.kr/www/downloadBbsFile.do?atchmnflNo=76744',
-            previewUrl: 'https://www.knue.ac.kr/www/previewBbsFile.do?atchmnflNo=76744'
+            previewUrl: 'https://www.knue.ac.kr/www/previewBbsFile.do?atchmnflNo=76744',
+            previewContent: '# Preview A\n본문 요약'
           },
           {
             filename: '행사 안내.hwp',
             downloadUrl: 'https://www.knue.ac.kr/www/downloadBbsFile.do?atchmnflNo=76745',
-            previewUrl: 'https://www.knue.ac.kr/www/previewBbsFile.do?atchmnflNo=76745'
+            previewUrl: 'https://www.knue.ac.kr/www/previewBbsFile.do?atchmnflNo=76745',
+            previewContent: '## Preview B\n- 항목 1\n- 항목 2'
           }
         ],
         articleId: '77500'
@@ -71,9 +73,38 @@ describe('convertToMarkdown', () => {
     const generatedAt = new Date('2025-10-17T01:00:00Z');
     const result = convertToMarkdown(sampleFeed, generatedAt);
 
-    expect(result).toContain('### 첨부파일');
-    expect(result).toContain('[행사 알림.jpg](https://www.knue.ac.kr/www/downloadBbsFile.do?atchmnflNo=76744)');
-    expect(result).toContain('[행사 안내.hwp](https://www.knue.ac.kr/www/downloadBbsFile.do?atchmnflNo=76745)');
+    const secondItemSection = result.split('---').find(section =>
+      section.includes('2024학년도 후기 학위수여식 안내')
+    );
+    expect(secondItemSection).toBeDefined();
+    expect(secondItemSection).not.toContain('### 첨부파일');
+  });
+
+  it('should include preview content section when available', () => {
+    const generatedAt = new Date('2025-10-17T01:00:00Z');
+    const result = convertToMarkdown(sampleFeed, generatedAt);
+
+    const secondItemSection = result.split('---').find(section =>
+      section.includes('2024학년도 후기 학위수여식 안내')
+    );
+
+    expect(secondItemSection).toContain('### 미리보기');
+    expect(secondItemSection).toContain('# Preview A');
+    expect(secondItemSection).toContain('## Preview B');
+    expect(secondItemSection).toContain('- 항목 2');
+  });
+
+  it('should list preview and download URLs with filenames in header when available', () => {
+    const generatedAt = new Date('2025-10-17T01:00:00Z');
+    const result = convertToMarkdown(sampleFeed, generatedAt);
+
+    const headerSection = result.split('---')[0];
+    expect(headerSection).toContain('**Preview URLs:**');
+    expect(headerSection).toContain('- 행사 알림.jpg: https://www.knue.ac.kr/www/previewBbsFile.do?atchmnflNo=76744');
+    expect(headerSection).toContain('- 행사 안내.hwp: https://www.knue.ac.kr/www/previewBbsFile.do?atchmnflNo=76745');
+    expect(headerSection).toContain('**Download URLs:**');
+    expect(headerSection).toContain('- 행사 알림.jpg: https://www.knue.ac.kr/www/downloadBbsFile.do?atchmnflNo=76744');
+    expect(headerSection).toContain('- 행사 안내.hwp: https://www.knue.ac.kr/www/downloadBbsFile.do?atchmnflNo=76745');
   });
 
   it('should omit attachments section when empty', () => {

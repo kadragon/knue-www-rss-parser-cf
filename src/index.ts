@@ -2,11 +2,14 @@ import { fetchRSS } from './rss/fetcher';
 import { parseRSS } from './rss/parser';
 import { convertToMarkdown } from './markdown/converter';
 import { writeToR2 } from './storage/r2-writer';
+import { enrichItemWithPreview, getPreviewConfig } from './rss/enricher';
 
 interface Env {
   RSS_STORAGE: R2Bucket;
   RSS_FEED_BASE_URL: string;
   BOARD_IDS: string;
+  PREVIEW_PARSER_BASE_URL?: string;
+  PREVIEW_PARSER_TOKEN?: string;
 }
 
 interface BatchResult {
@@ -50,10 +53,16 @@ async function processBoardBatch(
       const feed = parseRSS(xml);
       console.log(`✓ [Board ${boardId}] Parsed ${feed.items.length} items`);
 
+      const previewConfig = getPreviewConfig(env);
+
+      const itemsWithPreview = await Promise.all(
+        feed.items.map(item => enrichItemWithPreview(item, previewConfig, { boardId }))
+      );
+
       let savedCount = 0;
       let skippedCount = 0;
 
-      for (const item of feed.items) {
+      for (const item of itemsWithPreview) {
         const markdown = convertToMarkdown({ ...feed, items: [item] }, now);
         const { saved, skipped } = await saveArticlesToR2(env.RSS_STORAGE, boardId, markdown, item);
 
