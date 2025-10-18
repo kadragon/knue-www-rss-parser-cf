@@ -61,7 +61,7 @@ npm install
 ### R2 버킷 생성
 
 ```bash
-npx wrangler r2 bucket create knue-rss-archive
+npx wrangler r2 bucket create knue-vectorstore
 ```
 
 ### 환경 변수

@@ -1,5 +1,6 @@
 import type { RSSFeed } from '../rss/parser';
 import { htmlToMarkdown } from './html-converter';
+import { formatDateWithKST } from '../utils/datetime';
 
 export function convertToMarkdown(feed: RSSFeed, generatedAt: Date): string {
   const lines: string[] = [];
@@ -7,7 +8,7 @@ export function convertToMarkdown(feed: RSSFeed, generatedAt: Date): string {
   lines.push(`# ${feed.title}`);
   lines.push(`**Source**: ${feed.link}  `);
   lines.push(`**Description**: ${feed.description}  `);
-  lines.push(`**Generated**: ${generatedAt.toISOString()}`);
+  lines.push(`**Generated**: ${generatedAt.toISOString()} (${formatDateWithKST(generatedAt)})`);
   lines.push('');
   lines.push('---');
   lines.push('');
