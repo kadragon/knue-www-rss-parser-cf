@@ -1,9 +1,11 @@
-import htmlToMd from 'html-to-md';
+import { convert } from 'html-to-text';
 
 export function htmlToMarkdown(html: string): string {
   if (!html || html.trim() === '') {
     return '';
   }
 
-  return htmlToMd(html).trim();
+  return convert(html, {
+    wordwrap: 80
+  }).trim();
 }
