@@ -26,34 +26,33 @@ export async function enrichItemWithPreview(
   }
 
   const { boardId, logger = console } = options;
-  const enrichedAttachments: RSSAttachment[] = [];
-
-  for (const attachment of item.attachments) {
-    if (!attachment.previewId) {
-      enrichedAttachments.push(attachment);
-      continue;
-    }
-
-    try {
-      const previewContent = await fetchPreviewContent(attachment.previewId, previewConfig);
-      enrichedAttachments.push({
-        ...attachment,
-        previewContent
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (boardId) {
-        logger.error(
-          `⚠ [Board ${boardId}] Failed to fetch preview for attachment ${attachment.previewId}: ${message}`
-        );
-      } else {
-        logger.error(
-          `⚠ Failed to fetch preview for attachment ${attachment.previewId}: ${message}`
-        );
+  const enrichedAttachments: RSSAttachment[] = await Promise.all(
+    item.attachments.map(async attachment => {
+      if (!attachment.previewId) {
+        return attachment;
       }
-      enrichedAttachments.push(attachment);
-    }
-  }
+
+      try {
+        const previewContent = await fetchPreviewContent(attachment.previewId, previewConfig);
+        return {
+          ...attachment,
+          previewContent
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (boardId) {
+          logger.error(
+            `⚠ [Board ${boardId}] Failed to fetch preview for attachment ${attachment.previewId}: ${message}`
+          );
+        } else {
+          logger.error(
+            `⚠ Failed to fetch preview for attachment ${attachment.previewId}: ${message}`
+          );
+        }
+        return attachment;
+      }
+    })
+  );
 
   return {
     ...item,
