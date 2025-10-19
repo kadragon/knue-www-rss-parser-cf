@@ -393,9 +393,8 @@ describe('Integration: Full Workflow', () => {
       cursor: undefined,
       limit: 1000
     });
-    expect(mockBucket.delete).toHaveBeenCalledWith('rss/25/2023_10_18_70000.md');
-    expect(mockBucket.delete).not.toHaveBeenCalledWith('rss/25/2024_10_19_71000.md');
-    expect(mockBucket.delete).not.toHaveBeenCalledWith('rss/25/2025_10_16_77561.md');
+    expect(mockBucket.delete).toHaveBeenCalledTimes(1);
+    expect(mockBucket.delete).toHaveBeenCalledWith(['rss/25/2023_10_18_70000.md']);
     vi.useRealTimers();
   });
 });

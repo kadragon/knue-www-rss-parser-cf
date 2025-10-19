@@ -79,6 +79,8 @@ async function purgeExpiredArticles(
       limit: R2_LIST_PAGE_SIZE
     });
 
+    const keysToDelete: string[] = [];
+
     for (const object of listResult.objects) {
       const objectDate = parseDateFromR2Key(object.key);
 
@@ -87,9 +89,16 @@ async function purgeExpiredArticles(
       }
 
       if (objectDate < retentionCutoff) {
-        await bucket.delete(object.key);
-        deletedCount++;
-        console.log(`🗑️ [Board ${boardId}] Deleted expired article ${object.key}`);
+        keysToDelete.push(object.key);
+      }
+    }
+
+    if (keysToDelete.length > 0) {
+      await bucket.delete(keysToDelete);
+      deletedCount += keysToDelete.length;
+
+      for (const key of keysToDelete) {
+        console.log(`🗑️ [Board ${boardId}] Deleted expired article ${key}`);
       }
     }
 
