@@ -19,8 +19,20 @@
 - ✅ **AC-7** Observability behavior — asserted via integration tests logging expectations.
 
 ### Test Inventory
-- **Unit tests:** 54 (rss, markdown, storage, preview, utils)
-- **Integration tests:** 9 multi-board workflows
+| Suite | Tests | Notes |
+| --- | --- | --- |
+| `test/rss/fetcher.test.ts` | 5 | Retry + timeout logic |
+| `test/rss/parser.test.ts` | 10 | Core XML parsing scenarios |
+| `test/rss/parser-entity-decode.test.ts` | 3 | HTML entity decoding guard |
+| `test/markdown/converter.test.ts` | 10 | Markdown contract (preview/download aggregation) |
+| `test/markdown/html-converter.test.ts` | 8 | html-to-text conversion cases |
+| `test/storage/r2-writer.test.ts` | 8 | Idempotent R2 writes |
+| `test/preview/fetcher.test.ts` | 3 | Preview API response handling |
+| `test/utils/datetime.test.ts` | 7 | ISO + KST formatting, key generation |
+| `test/integration/workflow.test.ts` | 9 | Multi-board workflows + failure handling |
+
+- **Unit tests:** 54 (sum of first seven suites)
+- **Integration tests:** 9 (`test/integration/workflow.test.ts`)
 - **Total executed:** 63 (Vitest v3.2.4)
 - **Coverage gate:** 90/90/75/90 configured (run `npm run test:coverage` on change-touching parser or converter modules).
 
