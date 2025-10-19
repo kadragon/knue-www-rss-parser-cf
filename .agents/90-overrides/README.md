@@ -1,16 +1,21 @@
-# Overrides
+---
+id: AG-GUIDE-OVERRIDE-001
+version: 1.1.0
+scope: global
+status: active
+supersedes: []
+depends: []
+last-updated: 2025-10-19
+owner: team-admin
+---
 
-This folder contains **exceptions and temporary patches** to global policies.
+# Overrides Folder Guide
 
-## Usage
+- Store temporary departures from global policy in this folder only when mandated.
+- Record rationale, scope, owner, and expiry; use the highest numeric prefix to outrank base policies.
+- Archive expired overrides to `.agents/_archive/YYYY/Q/` and update supersession chains.
 
-- Use only when a temporary deviation from global policy is required
-- Document the reason and expiration date
-- Use higher numeric prefix to override earlier policies
-- Archive to `_archive/` when no longer needed
-
-## Format
-
+## File Skeleton
 ```md
 ---
 id: AG-OVERRIDE-<NAME>-001
@@ -30,8 +35,8 @@ expires: YYYY-MM-DD
 [Why this override is needed]
 
 ## Scope
-[What it affects]
+[What the override covers]
 
 ## Expiration
-[When it should be removed]
+[When the override ends]
 ```

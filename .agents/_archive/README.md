@@ -1,22 +1,17 @@
-# Archive
+---
+id: AG-GUIDE-ARCHIVE-001
+version: 1.1.0
+scope: global
+status: active
+supersedes: []
+depends: []
+last-updated: 2025-10-19
+owner: team-admin
+---
 
-Deprecated or retired policy files are stored here.
+# Archive Folder Guide
 
-## Structure
-
-```
-_archive/
-  YYYY/
-    Q1/
-      AG-POLICY-OLD-001.md
-    Q2/
-    Q3/
-    Q4/
-```
-
-## Rules
-
-- Files with `status: deprecated` move here
-- Organize by year and quarter
-- Update supersession chains in active files
-- Keep for audit trail; do not delete
+- Park deprecated or superseded policies here for audit purposes only.
+- Structure hierarchy as `.agents/_archive/<year>/Q<quarter>/file.md`.
+- Ensure each archived file has `status: deprecated` and links to its successor.
+- Do not delete archived content without explicit approval.

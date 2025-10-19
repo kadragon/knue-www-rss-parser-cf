@@ -1,5 +1,21 @@
 # Progress Log: KNUE RSS Parser
 
+## 2025-10-19
+
+### ✅ Completed
+1. **Memory bank refresh**
+   - Reconciled `.agents/`, `.tasks/`, `.spec/` with current implementation (html-to-text + preview service).
+   - Added metadata/front-matter to templates and archive guidelines.
+   - Condensed task backlog and RSP artifacts for quicker onboarding.
+
+2. **Spec alignment**
+   - Updated canonical spec to v1.1.0 (html-to-text dependency, preview enrichment contract, env vars).
+   - Synced SPEC-DELTA with passing test counts and coverage guard rails.
+
+### 📋 Next Steps
+1. Monitor preview API stability before proposing retry enhancements.
+2. Schedule ESLint 9 migration (TASK-002) once Cloudflare releases flat-config guidance for Workers.
+
 ## 2025-10-17
 
 ### ✅ Completed
@@ -38,3 +54,4 @@ Ready to start implementation:
 - Attachments use numbered pattern - need dynamic parsing
 - HTML description requires conversion to Markdown for readability
 - Date format is YYYY-MM-DD with no timezone (assume KST)
+- 2025-10-18 update: switched Markdown conversion dependency from `turndown` to `html-to-text` for Workers compatibility.
