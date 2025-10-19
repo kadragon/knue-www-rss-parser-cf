@@ -56,10 +56,21 @@ export function extractDateOnly(value: string): string {
 }
 
 export function getCutoffDateString(baseline: Date, years: number): string {
-  const utcDate = new Date(baseline);
-  utcDate.setUTCHours(0, 0, 0, 0);
-  utcDate.setUTCFullYear(utcDate.getUTCFullYear() - years);
-  return utcDate.toISOString().slice(0, 10);
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+
+  const [yearStr, monthStr, dayStr] = formatter.format(baseline).split('-');
+  const month = Number(monthStr);
+  const originalDay = Number(dayStr);
+  const targetYear = Number(yearStr) - years;
+  const daysInTargetMonth = getDaysInMonth(targetYear, month);
+  const targetDay = Math.min(originalDay, daysInTargetMonth);
+
+  return `${targetYear}-${monthStr}-${String(targetDay).padStart(2, '0')}`;
 }
 
 export function parseDateFromR2Key(key: string): string | null {
@@ -71,4 +82,8 @@ export function parseDateFromR2Key(key: string): string | null {
 
   const [, year, month, day] = match;
   return `${year}-${month}-${day}`;
+}
+
+function getDaysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
