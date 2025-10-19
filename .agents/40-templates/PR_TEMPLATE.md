@@ -1,40 +1,39 @@
+---
+id: AG-TEMPLATE-PR-001
+version: 1.1.0
+scope: global
+status: active
+supersedes: []
+depends: []
+last-updated: 2025-10-19
+owner: team-admin
+---
+
 # [Prefix] Title
 
-> Brief description of changes and motivation
-
----
+> One-sentence summary of the change and rationale.
 
 ## Summary
-
-- [Main change 1]
-- [Main change 2]
+- [ ] Primary behavior change:
+- [ ] Structural/supporting change:
+- [ ] Follow-up required (optional):
 
 ## Changes
+- `path/to/file` — note material impact
+- `path/to/another-file` — note material impact
 
-### Modified Files
-- `path/to/file1.ts` — [What changed]
-- `path/to/file2.ts` — [What changed]
+## Validation
+- [ ] `npm test`
+- [ ] `npm run lint`
+- [ ] `npm run typecheck`
+- [ ] Manual check (describe):
+- [ ] Secrets scan (if applicable)
 
-### Tests
-- [ ] All existing tests pass
-- [ ] New tests added for new functionality
-- [ ] Edge cases covered
+## Rollback
+1. Steps to revert the change
+2. Validation after rollback
 
-## Verification
-
-- [ ] Lint passes
-- [ ] Typecheck passes
-- [ ] Integration tests pass
-- [ ] No secrets in diff
-
-## Related
-
-- Task: `.tasks/<task-name>/`
+## Links
+- Task: `.tasks/<task>/`
 - Spec: `.spec/<domain>/<name>.spec.md`
-- Issue: #[issue-number]
-
----
-
-## Rollback Plan
-
-[How to revert if needed]
+- Issue/Discussion: #[id]
