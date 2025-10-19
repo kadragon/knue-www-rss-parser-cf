@@ -25,7 +25,7 @@ owner: team-admin
 **Given** `BOARD_IDS` contains a comma-separated list of board identifiers  
 **When** the job runs  
 **Then** each board issues an HTTP GET to `RSS_FEED_BASE_URL?bbsNo=<boardId>` with:
-- Timeout: 5 000 ms per attempt
+- Timeout: 5000 ms per attempt
 - Retries: up to 3 attempts with exponential backoff (multiplier 2, max delay 10 000 ms)
 - Failures logged with board context; final failure continues processing remaining boards.
 
