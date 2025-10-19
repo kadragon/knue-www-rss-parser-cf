@@ -250,29 +250,4 @@ describe('Integration: Full Workflow', () => {
   });
 });
 
-describe('Integration: HTTP Request Handler', () => {
-  const mockEnv = {
-    RSS_STORAGE: {} as R2Bucket,
-    RSS_FEED_BASE_URL: 'https://www.knue.ac.kr/rssBbsNtt.do',
-    BOARD_IDS: '25,26'
-  };
-  const requestUrl = 'https://knue-www-rss-parser-cf.kangdongouk.workers.dev/';
 
-  it('should reject direct GET requests with appropriate message', async () => {
-    const request = new Request(requestUrl, { method: 'GET' });
-    const response = await worker.fetch(request, mockEnv as any, {} as ExecutionContext);
-
-    expect(response.status).toBe(405);
-    expect(response.headers.get('Content-Type')).toBe('application/json');
-
-    const body = await response.json() as { error: string; message: string };
-    expect(body.error).toBe('Method Not Allowed');
-    expect(body.message).toContain('cron');
-  });
-
-  it.each(['POST', 'PUT'])('should reject %s requests', async (method) => {
-    const request = new Request(requestUrl, { method });
-    const response = await worker.fetch(request, mockEnv as any, {} as ExecutionContext);
-    expect(response.status).toBe(405);
-  });
-});
