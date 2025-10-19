@@ -12,13 +12,17 @@ _Last updated: 2025-10-19 (UTC+09:00)_
 - **TASK-011 — Observability metrics**: Add Analytics Engine metrics & failure alerts once preview service log format stabilises.
 
 ## Completed Snapshot (Oct 2025)
-- **TASK-001**: Cron schedule documentation aligned with Cloudflare trigger (`0 16 * * *`).
-- **TASK-003**: Canonical RSS specification captured under `.spec/rss-parser/rss-parser.spec.md`.
-- **TASK-004**: Coverage thresholds enforced (statements 90%, branches 75%, functions 90%, lines 90%).
-- **TASK-006**: Resilient fetch with retries, timeout guard, structured logging.
-- **TASK-007**: Preview worker integration and enriched attachment output.
-- **TASK-008**: CONTRIBUTING and security hardening (Husky, audit checks).
-- **TASK-009**: Scheduler refactor to modular board batch + R2 writer orchestration.
+| ID | Summary | Completed |
+| --- | --- | --- |
+| TASK-001 | Cron schedule documentation aligned with Cloudflare trigger (`0 16 * * *`). | 2025-10-17 |
+| TASK-003 | Canonical RSS specification captured under `.spec/rss-parser/rss-parser.spec.md`. | 2025-10-17 |
+| TASK-004 | Coverage thresholds enforced (statements 90%, branches 75%, functions 90%, lines 90%). | 2025-10-17 |
+| TASK-006 | `.env.example` + README local development setup guidance. | 2025-10-17 |
+| TASK-007 | Resilient fetch with retries, timeout guard, structured logging. | 2025-10-17 |
+| TASK-008 | CONTRIBUTING and security hardening (Husky audit hooks). | 2025-10-17 |
+| TASK-009 | Scheduler refactor with modular board batch + attachment enrichment pipeline. | 2025-10-17 |
+
+> Task identifiers follow the 2025-10-17 backlog to preserve historical mapping; no renumbering has occurred.
 
 ## References
 - Spec: `.spec/rss-parser/rss-parser.spec.md`
