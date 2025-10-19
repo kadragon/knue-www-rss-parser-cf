@@ -55,12 +55,6 @@ export function extractDateOnly(value: string): string {
   return datePart;
 }
 
-export function isOlderThanYears(value: string, baseline: Date, years: number): boolean {
-  const dateOnly = extractDateOnly(value);
-  const cutoff = getCutoffDateString(baseline, years);
-  return dateOnly < cutoff;
-}
-
 export function getCutoffDateString(baseline: Date, years: number): string {
   const utcDate = new Date(baseline);
   utcDate.setUTCHours(0, 0, 0, 0);
