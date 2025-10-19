@@ -85,6 +85,25 @@ async function processBoardBatch(
 }
 
 export default {
+  async fetch(
+    _request: Request,
+    _env: Env,
+    _ctx: ExecutionContext
+  ): Promise<Response> {
+    return new Response(
+      JSON.stringify({
+        error: 'Method Not Allowed',
+        message: 'This worker only accepts requests from cron triggers. Direct HTTP requests are not supported.'
+      }),
+      {
+        status: 405,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  },
+
   async scheduled(
     _controller: ScheduledController,
     env: Env,
