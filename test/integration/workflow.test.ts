@@ -19,7 +19,12 @@ describe('Integration: Full Workflow', () => {
 
     const mockBucket = {
       put: vi.fn().mockResolvedValue(undefined),
-      head: vi.fn().mockResolvedValue(null)
+      head: vi.fn().mockResolvedValue(null),
+      list: vi.fn().mockResolvedValue({
+        objects: [],
+        truncated: false
+      }),
+      delete: vi.fn().mockResolvedValue(undefined)
     };
 
     const mockEnv = {
@@ -72,7 +77,12 @@ describe('Integration: Full Workflow', () => {
 
     const mockBucket = {
       put: vi.fn().mockResolvedValue(undefined),
-      head: vi.fn().mockResolvedValue(null)
+      head: vi.fn().mockResolvedValue(null),
+      list: vi.fn().mockResolvedValue({
+        objects: [],
+        truncated: false
+      }),
+      delete: vi.fn().mockResolvedValue(undefined)
     };
 
     const mockEnv = {
@@ -117,7 +127,12 @@ describe('Integration: Full Workflow', () => {
 
     const mockBucket = {
       put: vi.fn().mockResolvedValue(undefined),
-      head: vi.fn().mockResolvedValue(null)
+      head: vi.fn().mockResolvedValue(null),
+      list: vi.fn().mockResolvedValue({
+        objects: [],
+        truncated: false
+      }),
+      delete: vi.fn().mockResolvedValue(undefined)
     };
 
     const mockEnv = {
@@ -150,7 +165,12 @@ describe('Integration: Full Workflow', () => {
 
     const mockBucket = {
       put: vi.fn(),
-      head: vi.fn()
+      head: vi.fn(),
+      list: vi.fn().mockResolvedValue({
+        objects: [],
+        truncated: false
+      }),
+      delete: vi.fn()
     };
 
     const mockEnv = {
@@ -188,7 +208,12 @@ describe('Integration: Full Workflow', () => {
 
     const mockBucket = {
       put: vi.fn().mockResolvedValue(undefined),
-      head: vi.fn().mockResolvedValue(null)
+      head: vi.fn().mockResolvedValue(null),
+      list: vi.fn().mockResolvedValue({
+        objects: [],
+        truncated: false
+      }),
+      delete: vi.fn().mockResolvedValue(undefined)
     };
 
     const mockEnv = {
@@ -226,7 +251,12 @@ describe('Integration: Full Workflow', () => {
         }
         return Promise.resolve(undefined);
       }),
-      head: vi.fn().mockResolvedValue(null)
+      head: vi.fn().mockResolvedValue(null),
+      list: vi.fn().mockResolvedValue({
+        objects: [],
+        truncated: false
+      }),
+      delete: vi.fn().mockResolvedValue(undefined)
     };
 
     const mockEnv = {
@@ -248,6 +278,124 @@ describe('Integration: Full Workflow', () => {
 
     expect(mockBucket.put).toHaveBeenCalled();
   });
+  it('should skip items older than two years', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-10-19T00:00:00Z'));
+
+    const oldItemPubDate = '2023-10-18';
+    const recentItemPubDate = '2025-10-19';
+
+    const feedWithOldItem = `
+      <rss version="2.0">
+        <channel>
+          <title><![CDATA[ RSS - 테스트 ]]></title>
+          <link>https://www.knue.ac.kr</link>
+          <description><![CDATA[ RSS - 테스트 ]]></description>
+          <item>
+            <title><![CDATA[ 최근 공지 ]]></title>
+            <link><![CDATA[ https://www.knue.ac.kr/www/selectBbsNttView.do?key=806&bbsNo=25&nttNo=90000 ]]></link>
+            <pubDate><![CDATA[ ${recentItemPubDate} ]]></pubDate>
+            <description><![CDATA[ <p>최근 공지입니다.</p> ]]></description>
+          </item>
+          <item>
+            <title><![CDATA[ 예전 공지 ]]></title>
+            <link><![CDATA[ https://www.knue.ac.kr/www/selectBbsNttView.do?key=806&bbsNo=25&nttNo=80000 ]]></link>
+            <pubDate><![CDATA[ ${oldItemPubDate} ]]></pubDate>
+            <description><![CDATA[ <p>예전 공지입니다.</p> ]]></description>
+          </item>
+        </channel>
+      </rss>
+    `;
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => feedWithOldItem
+    });
+
+    const mockBucket = {
+      put: vi.fn().mockResolvedValue(undefined),
+      head: vi.fn().mockResolvedValue(null),
+      list: vi.fn().mockResolvedValue({
+        objects: [],
+        truncated: false
+      }),
+      delete: vi.fn().mockResolvedValue(undefined)
+    };
+
+    const mockEnv = {
+      RSS_STORAGE: mockBucket,
+      RSS_FEED_BASE_URL: 'https://www.knue.ac.kr/rssBbsNtt.do',
+      BOARD_IDS: '25'
+    };
+
+    const mockController = {
+      cron: '0 1 * * *',
+      scheduledTime: Date.now()
+    } as ScheduledController;
+
+    const mockCtx = {
+      waitUntil: vi.fn()
+    } as any;
+
+    await worker.scheduled(mockController, mockEnv as any, mockCtx);
+
+    expect(mockBucket.put).toHaveBeenCalledTimes(1);
+    expect(mockBucket.head).toHaveBeenCalledTimes(1);
+    const [savedKey] = mockBucket.put.mock.calls[0];
+    expect(savedKey).toBe('rss/25/2025_10_19_90000.md');
+    vi.useRealTimers();
+  });
+
+  it('should delete articles older than two years from storage', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-10-19T00:00:00Z'));
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => fixtureXml
+    });
+
+    const mockListResult = {
+      objects: [
+        { key: 'rss/25/2023_10_18_70000.md' },
+        { key: 'rss/25/2024_10_19_71000.md' },
+        { key: 'rss/25/2025_10_16_77561.md' }
+      ],
+      truncated: false
+    };
+
+    const mockBucket = {
+      put: vi.fn().mockResolvedValue(undefined),
+      head: vi.fn().mockResolvedValue(null),
+      list: vi.fn().mockResolvedValue(mockListResult),
+      delete: vi.fn().mockResolvedValue(undefined)
+    };
+
+    const mockEnv = {
+      RSS_STORAGE: mockBucket,
+      RSS_FEED_BASE_URL: 'https://www.knue.ac.kr/rssBbsNtt.do',
+      BOARD_IDS: '25'
+    };
+
+    const mockController = {
+      cron: '0 1 * * *',
+      scheduledTime: Date.now()
+    } as ScheduledController;
+
+    const mockCtx = {
+      waitUntil: vi.fn()
+    } as any;
+
+    await worker.scheduled(mockController, mockEnv as any, mockCtx);
+
+    expect(mockBucket.list).toHaveBeenCalledWith({
+      prefix: 'rss/25/',
+      cursor: undefined,
+      limit: 1000
+    });
+    expect(mockBucket.delete).toHaveBeenCalledWith('rss/25/2023_10_18_70000.md');
+    expect(mockBucket.delete).not.toHaveBeenCalledWith('rss/25/2024_10_19_71000.md');
+    expect(mockBucket.delete).not.toHaveBeenCalledWith('rss/25/2025_10_16_77561.md');
+    vi.useRealTimers();
+  });
 });
-
-

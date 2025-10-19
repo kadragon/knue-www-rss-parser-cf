@@ -26,7 +26,7 @@ export function formatDateWithKST(date: Date): string {
 }
 
 export function generateR2Key(boardIdx: string, pubDate: string, articleId: string): string {
-  const dateOnly = pubDate.split(' ')[0];
+  const dateOnly = extractDateOnly(pubDate);
   const dateParts = dateOnly.split('-');
   
   if (dateParts.length !== 3) {
@@ -36,4 +36,45 @@ export function generateR2Key(boardIdx: string, pubDate: string, articleId: stri
   const [year, month, day] = dateParts;
   
   return `rss/${boardIdx}/${year}_${month}_${day}_${articleId}.md`;
+}
+
+const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+export function extractDateOnly(value: string): string {
+  if (!value) {
+    throw new Error(`Invalid date format: ${value}`);
+  }
+
+  const trimmed = value.trim();
+  const datePart = trimmed.split(' ')[0];
+
+  if (!DATE_ONLY_REGEX.test(datePart)) {
+    throw new Error(`Invalid date format: ${value}`);
+  }
+
+  return datePart;
+}
+
+export function isOlderThanYears(value: string, baseline: Date, years: number): boolean {
+  const dateOnly = extractDateOnly(value);
+  const cutoff = getCutoffDateString(baseline, years);
+  return dateOnly < cutoff;
+}
+
+export function getCutoffDateString(baseline: Date, years: number): string {
+  const utcDate = new Date(baseline);
+  utcDate.setUTCHours(0, 0, 0, 0);
+  utcDate.setUTCFullYear(utcDate.getUTCFullYear() - years);
+  return utcDate.toISOString().slice(0, 10);
+}
+
+export function parseDateFromR2Key(key: string): string | null {
+  const match = key.match(/^rss\/[^/]+\/(\d{4})_(\d{2})_(\d{2})_/);
+
+  if (!match) {
+    return null;
+  }
+
+  const [, year, month, day] = match;
+  return `${year}-${month}-${day}`;
 }
