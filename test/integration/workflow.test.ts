@@ -249,3 +249,58 @@ describe('Integration: Full Workflow', () => {
     expect(mockBucket.put).toHaveBeenCalled();
   });
 });
+
+describe('Integration: HTTP Request Handler', () => {
+  it('should reject direct GET requests with appropriate message', async () => {
+    const mockEnv = {
+      RSS_STORAGE: {} as R2Bucket,
+      RSS_FEED_BASE_URL: 'https://www.knue.ac.kr/rssBbsNtt.do',
+      BOARD_IDS: '25,26'
+    };
+
+    const request = new Request('https://knue-www-rss-parser-cf.kangdongouk.workers.dev/', {
+      method: 'GET'
+    });
+
+    const response = await worker.fetch(request, mockEnv as any, {} as ExecutionContext);
+
+    expect(response.status).toBe(405);
+    expect(response.headers.get('Content-Type')).toBe('application/json');
+
+    const body = await response.json() as { error: string; message: string };
+    expect(body.error).toBe('Method Not Allowed');
+    expect(body.message).toContain('cron');
+  });
+
+  it('should reject POST requests', async () => {
+    const mockEnv = {
+      RSS_STORAGE: {} as R2Bucket,
+      RSS_FEED_BASE_URL: 'https://www.knue.ac.kr/rssBbsNtt.do',
+      BOARD_IDS: '25,26'
+    };
+
+    const request = new Request('https://knue-www-rss-parser-cf.kangdongouk.workers.dev/', {
+      method: 'POST'
+    });
+
+    const response = await worker.fetch(request, mockEnv as any, {} as ExecutionContext);
+
+    expect(response.status).toBe(405);
+  });
+
+  it('should reject PUT requests', async () => {
+    const mockEnv = {
+      RSS_STORAGE: {} as R2Bucket,
+      RSS_FEED_BASE_URL: 'https://www.knue.ac.kr/rssBbsNtt.do',
+      BOARD_IDS: '25,26'
+    };
+
+    const request = new Request('https://knue-www-rss-parser-cf.kangdongouk.workers.dev/', {
+      method: 'PUT'
+    });
+
+    const response = await worker.fetch(request, mockEnv as any, {} as ExecutionContext);
+
+    expect(response.status).toBe(405);
+  });
+});
