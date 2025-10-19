@@ -5,9 +5,9 @@
 ---
 
 ## Current Status (2025-10-19)
-- **Spec version:** 1.1.0 (html-to-text + preview enrichment)
+- **Spec version:** 1.2.0 (preview enrichment + two-year retention)
 - **Implementation:** Fully aligned ✅
-- **Last validation:** `npm test -- --run` @ 2025-10-19T03:10:06Z
+- **Last validation:** `npm test -- --run` @ 2025-10-19T04:21:56Z
 
 ### Acceptance Criteria Tracking
 - ✅ **AC-1** Scheduled execution logged with duration + totals.
@@ -17,6 +17,7 @@
 - ✅ **AC-5** R2 persistence idempotency — `test/storage/r2-writer.test.ts`.
 - ✅ **AC-6** Preview enrichment graceful degradation — `test/preview/fetcher.test.ts`, integration scenarios.
 - ✅ **AC-7** Observability behavior — asserted via integration tests logging expectations.
+- ✅ **AC-8** Two-year retention (ingest skip + R2 cleanup) — `test/integration/workflow.test.ts` ("should skip items older than two years", "should delete articles older than two years from storage").
 
 ### Test Inventory
 | Suite | Tests | Notes |
@@ -37,6 +38,7 @@
 - **Coverage gate:** 90/90/75/90 configured (run `npm run test:coverage` on change-touching parser or converter modules).
 
 ### Recent Changes Impacting Spec
+- Enforced two-year retention window: skip stale items pre-save and purge aged R2 artefacts.
 - Replaced `turndown` with `html-to-text` (Workers-safe Markdown conversion).
 - Added preview enrichment contract and env vars to canonical spec.
 - Documented aggregate preview/download sections in Markdown output.

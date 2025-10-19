@@ -1,8 +1,10 @@
 import { fetchRSS } from './rss/fetcher';
+import type { RSSItem } from './rss/parser';
 import { parseRSS } from './rss/parser';
 import { convertToMarkdown } from './markdown/converter';
 import { writeToR2 } from './storage/r2-writer';
 import { enrichItemWithPreview, getPreviewConfig } from './rss/enricher';
+import { extractDateOnly, getCutoffDateString, parseDateFromR2Key } from './utils/datetime';
 
 interface Env {
   RSS_STORAGE: R2Bucket;
@@ -17,6 +19,9 @@ interface BatchResult {
   totalErrors: number;
 }
 
+const RETENTION_YEARS = 2;
+const R2_LIST_PAGE_SIZE = 1000;
+
 async function saveArticlesToR2(
   bucket: R2Bucket,
   boardId: string,
@@ -28,6 +33,85 @@ async function saveArticlesToR2(
     saved: result.saved,
     skipped: !result.saved
   };
+}
+
+function filterItemsByRetention(
+  items: RSSItem[],
+  retentionCutoff: string,
+  boardId: string
+): { retainedItems: RSSItem[]; expiredCount: number } {
+  const retainedItems: RSSItem[] = [];
+  let expiredCount = 0;
+
+  for (const item of items) {
+    const itemDate = extractDateOnly(item.pubDate);
+
+    if (itemDate < retentionCutoff) {
+      expiredCount++;
+      console.log(
+        `⚠ [Board ${boardId}] Skipping article ${item.articleId} (${itemDate}) older than retention cutoff ${retentionCutoff}`
+      );
+      continue;
+    }
+
+    retainedItems.push(item);
+  }
+
+  return { retainedItems, expiredCount };
+}
+
+async function purgeExpiredArticles(
+  bucket: R2Bucket,
+  boardId: string,
+  now: Date
+): Promise<number> {
+  let cursor: string | undefined;
+  let deletedCount = 0;
+  const prefix = `rss/${boardId}/`;
+  const retentionCutoff = getCutoffDateString(now, RETENTION_YEARS);
+
+  let hasMore = true;
+
+  while (hasMore) {
+    const listResult = await bucket.list({
+      prefix,
+      cursor,
+      limit: R2_LIST_PAGE_SIZE
+    });
+
+    const keysToDelete: string[] = [];
+
+    for (const object of listResult.objects) {
+      const objectDate = parseDateFromR2Key(object.key);
+
+      if (!objectDate) {
+        continue;
+      }
+
+      if (objectDate < retentionCutoff) {
+        keysToDelete.push(object.key);
+      }
+    }
+
+    if (keysToDelete.length > 0) {
+      await bucket.delete(keysToDelete);
+      deletedCount += keysToDelete.length;
+
+      for (const key of keysToDelete) {
+        console.log(`🗑️ [Board ${boardId}] Deleted expired article ${key}`);
+      }
+    }
+
+    const nextCursor = 'cursor' in listResult ? listResult.cursor : undefined;
+    hasMore = Boolean(listResult.truncated && nextCursor);
+    cursor = hasMore ? nextCursor : undefined;
+  }
+
+  if (deletedCount > 0) {
+    console.log(`🧹 [Board ${boardId}] Removed ${deletedCount} expired articles older than ${retentionCutoff}`);
+  }
+
+  return deletedCount;
 }
 
 async function processBoardBatch(
@@ -54,9 +138,19 @@ async function processBoardBatch(
       console.log(`✓ [Board ${boardId}] Parsed ${feed.items.length} items`);
 
       const previewConfig = getPreviewConfig(env);
+      const retentionCutoff = getCutoffDateString(now, RETENTION_YEARS);
+      const { retainedItems, expiredCount } = filterItemsByRetention(feed.items, retentionCutoff, boardId);
+
+      if (expiredCount > 0) {
+        console.log(`⚠ [Board ${boardId}] Pruned ${expiredCount} items past retention window (${retentionCutoff})`);
+      }
+
+      if (retainedItems.length === 0) {
+        console.log(`⚠ [Board ${boardId}] No items within retention window; skipping save step`);
+      }
 
       const itemsWithPreview = await Promise.all(
-        feed.items.map(item => enrichItemWithPreview(item, previewConfig, { boardId }))
+        retainedItems.map(item => enrichItemWithPreview(item, previewConfig, { boardId }))
       );
 
       let savedCount = 0;
@@ -75,6 +169,8 @@ async function processBoardBatch(
 
       console.log(`✓ [Board ${boardId}] Saved ${savedCount} articles, skipped ${skippedCount} duplicates`);
       totalSaved += savedCount;
+
+      await purgeExpiredArticles(env.RSS_STORAGE, boardId, now);
     } catch (error) {
       totalErrors++;
       console.error(`❌ [Board ${boardId}] Failed:`, error instanceof Error ? error.message : error);

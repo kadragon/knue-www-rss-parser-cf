@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDateISO, generateR2Key } from '../../src/utils/datetime';
+import { formatDateISO, generateR2Key, getCutoffDateString } from '../../src/utils/datetime';
 
 describe('datetime utilities', () => {
   describe('formatDateISO', () => {
@@ -52,6 +52,29 @@ describe('datetime utilities', () => {
 
     it('should throw error on invalid date format', () => {
       expect(() => generateR2Key('25', 'invalid-date', '77561')).toThrow('Invalid date format');
+    });
+  });
+
+  describe('getCutoffDateString', () => {
+    it('computes cutoff using Asia/Seoul date when execution crosses UTC day boundary', () => {
+      const baseline = new Date('2025-10-19T15:30:00Z'); // 2025-10-20 00:30:00 KST
+      const cutoff = getCutoffDateString(baseline, 2);
+
+      expect(cutoff).toBe('2023-10-20');
+    });
+
+    it('retains same local day when within KST daytime window', () => {
+      const baseline = new Date('2025-10-19T12:00:00Z'); // 2025-10-19 21:00:00 KST
+      const cutoff = getCutoffDateString(baseline, 2);
+
+      expect(cutoff).toBe('2023-10-19');
+    });
+
+    it('handles leap-day baselines by clamping to month length', () => {
+      const baseline = new Date('2024-02-28T15:00:00Z'); // 2024-02-29 00:00:00 KST
+      const cutoff = getCutoffDateString(baseline, 2);
+
+      expect(cutoff).toBe('2022-02-28');
     });
   });
 });

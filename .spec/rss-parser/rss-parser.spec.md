@@ -1,13 +1,13 @@
 ---
 id: SPEC-RSS-PARSER-001
-version: 1.1.0
+version: 1.2.0
 scope: global
 status: active
 last-updated: 2025-10-19
 owner: team-admin
 ---
 
-# KNUE RSS Parser Specification (v1.1.0)
+# KNUE RSS Parser Specification (v1.2.0)
 
 ## Overview
 - Cloudflare Worker that archives KNUE board RSS feeds on a daily schedule.
@@ -108,6 +108,19 @@ If preview config is missing, attachments remain without preview content and job
 - Aggregate summary prints total saved vs failed and total duration.
 - Job throws only when all boards fail or unexpected errors bubble up.
 
+### AC-8 — Two-Year Retention
+**Given** the Worker processes items for a board  
+**When** an item's `pubDate` is earlier than the date exactly two calendar years before execution day (Asia/Seoul, date component only)  
+**Then** that item is skipped before preview enrichment or R2 writes, with a log indicating the skip.
+
+**And Given** the Worker completes processing for a board  
+**When** stored Markdown objects under `rss/{boardId}/` have embedded dates earlier than the same two-year cutoff  
+**Then** those objects are deleted from R2 and deletions are logged with the affected key.
+
+Notes:
+- The retention cutoff is inclusive: items with `pubDate` equal to the cutoff date or newer are retained.
+- Cleanup scans R2 in batches (≤1 000 keys per request) until all expired objects are evaluated.
+
 ## Data Contracts
 
 ### RSSItem
@@ -167,5 +180,6 @@ If preview config is missing, attachments remain without preview content and job
 ## Version History
 | Version | Date | Summary |
 | --- | --- | --- |
+| 1.2.0 | 2025-10-19 | Enforced two-year retention (ingest skip + R2 cleanup). |
 | 1.1.0 | 2025-10-19 | Added preview enrichment spec, html-to-text dependency, clarified cron + logging requirements. |
 | 1.0.0 | 2025-10-17 | Initial canonical specification. |

@@ -9,8 +9,13 @@
    - Condensed task backlog and RSP artifacts for quicker onboarding.
 
 2. **Spec alignment**
-   - Updated canonical spec to v1.1.0 (html-to-text dependency, preview enrichment contract, env vars).
+   - Updated canonical spec to v1.2.0 (preview enrichment + two-year retention, html-to-text dependency, env vars).
    - Synced SPEC-DELTA with passing test counts and coverage guard rails.
+
+3. **Retention window enforcement**
+   - Added two-year cutoff for ingestion and R2 cleanup (AC-8).
+   - Extended integration coverage for skip + delete workflows.
+   - Promoted spec to v1.2.0 and refreshed SPEC-DELTA tracking.
 
 ### 📋 Next Steps
 1. Monitor preview API stability before proposing retry enhancements.
