@@ -89,20 +89,19 @@ async function purgeExpiredArticles(
   now: Date
 ): Promise<number> {
   let cursor: string | undefined;
-  let deletedCount = 0;
   const prefix = `rss/${boardId}/`;
   const retentionCutoff = getCutoffDateString(now, RETENTION_YEARS);
+  const allKeysToDelete: string[] = [];
 
   let hasMore = true;
 
+  // Step 1: Collect all expired keys across all pages
   while (hasMore) {
     const listResult = await bucket.list({
       prefix,
       cursor,
       limit: R2_LIST_PAGE_SIZE
     });
-
-    const keysToDelete: string[] = [];
 
     for (const object of listResult.objects) {
       const objectDate = parseDateFromR2Key(object.key);
@@ -112,16 +111,7 @@ async function purgeExpiredArticles(
       }
 
       if (objectDate < retentionCutoff) {
-        keysToDelete.push(object.key);
-      }
-    }
-
-    if (keysToDelete.length > 0) {
-      await bucket.delete(keysToDelete);
-      deletedCount += keysToDelete.length;
-
-      for (const key of keysToDelete) {
-        console.log(`🗑️ [Board ${boardId}] Deleted expired article ${key}`);
+        allKeysToDelete.push(object.key);
       }
     }
 
@@ -130,7 +120,16 @@ async function purgeExpiredArticles(
     cursor = hasMore ? nextCursor : undefined;
   }
 
-  if (deletedCount > 0) {
+  // Step 2: Delete all expired keys after pagination completes
+  let deletedCount = 0;
+  if (allKeysToDelete.length > 0) {
+    await bucket.delete(allKeysToDelete);
+    deletedCount = allKeysToDelete.length;
+
+    for (const key of allKeysToDelete) {
+      console.log(`🗑️ [Board ${boardId}] Deleted expired article ${key}`);
+    }
+
     console.log(`🧹 [Board ${boardId}] Removed ${deletedCount} expired articles older than ${retentionCutoff}`);
   }
 
