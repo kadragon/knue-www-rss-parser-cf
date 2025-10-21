@@ -8,6 +8,7 @@ import { extractDateOnly, getCutoffDateString, parseDateFromR2Key } from './util
 
 interface Env {
   RSS_STORAGE: R2Bucket;
+  RSS_TRACKER: KVNamespace;
   RSS_FEED_BASE_URL: string;
   BOARD_IDS: string;
   PREVIEW_PARSER_BASE_URL?: string;
@@ -21,6 +22,18 @@ interface BatchResult {
 
 const RETENTION_YEARS = 2;
 const R2_LIST_PAGE_SIZE = 1000;
+
+async function getLastProcessedId(kv: KVNamespace, boardId: string): Promise<number> {
+  const key = `rss-tracker:${boardId}`;
+  const value = await kv.get(key);
+  return value ? parseInt(value, 10) : 0;
+}
+
+async function updateLastProcessedId(kv: KVNamespace, boardId: string, articleId: string): Promise<void> {
+  const key = `rss-tracker:${boardId}`;
+  const numericId = parseInt(articleId, 10);
+  await kv.put(key, numericId.toString());
+}
 
 async function saveArticlesToR2(
   bucket: R2Bucket,
@@ -38,12 +51,22 @@ async function saveArticlesToR2(
 function filterItemsByRetention(
   items: RSSItem[],
   retentionCutoff: string,
+  lastProcessedId: number,
   boardId: string
-): { retainedItems: RSSItem[]; expiredCount: number } {
+): { retainedItems: RSSItem[]; expiredCount: number; skippedCount: number } {
   const retainedItems: RSSItem[] = [];
   let expiredCount = 0;
+  let skippedCount = 0;
 
   for (const item of items) {
+    const itemId = parseInt(item.articleId, 10);
+
+    // Skip if already processed (ID DESC order means smaller IDs are already done)
+    if (itemId <= lastProcessedId) {
+      skippedCount++;
+      continue;
+    }
+
     const itemDate = extractDateOnly(item.pubDate);
 
     if (itemDate < retentionCutoff) {
@@ -57,7 +80,7 @@ function filterItemsByRetention(
     retainedItems.push(item);
   }
 
-  return { retainedItems, expiredCount };
+  return { retainedItems, expiredCount, skippedCount };
 }
 
 async function purgeExpiredArticles(
@@ -139,14 +162,25 @@ async function processBoardBatch(
 
       const previewConfig = getPreviewConfig(env);
       const retentionCutoff = getCutoffDateString(now, RETENTION_YEARS);
-      const { retainedItems, expiredCount } = filterItemsByRetention(feed.items, retentionCutoff, boardId);
+      const lastProcessedId = await getLastProcessedId(env.RSS_TRACKER, boardId);
+      const { retainedItems, expiredCount, skippedCount } = filterItemsByRetention(
+        feed.items,
+        retentionCutoff,
+        lastProcessedId,
+        boardId
+      );
+
+      if (skippedCount > 0) {
+        console.log(`⏭️ [Board ${boardId}] Skipped ${skippedCount} items already processed`);
+      }
 
       if (expiredCount > 0) {
         console.log(`⚠ [Board ${boardId}] Pruned ${expiredCount} items past retention window (${retentionCutoff})`);
       }
 
       if (retainedItems.length === 0) {
-        console.log(`⚠ [Board ${boardId}] No items within retention window; skipping save step`);
+        console.log(`ℹ️ [Board ${boardId}] No new items to process`);
+        continue;
       }
 
       const itemsWithPreview = await Promise.all(
@@ -154,7 +188,7 @@ async function processBoardBatch(
       );
 
       let savedCount = 0;
-      let skippedCount = 0;
+      let duplicateCount = 0;
 
       for (const item of itemsWithPreview) {
         const markdown = convertToMarkdown({ ...feed, items: [item] }, now);
@@ -163,12 +197,17 @@ async function processBoardBatch(
         if (saved) {
           savedCount++;
         } else if (skipped) {
-          skippedCount++;
+          duplicateCount++;
         }
       }
 
-      console.log(`✓ [Board ${boardId}] Saved ${savedCount} articles, skipped ${skippedCount} duplicates`);
+      console.log(`✓ [Board ${boardId}] Saved ${savedCount} articles, ${duplicateCount} duplicates`);
       totalSaved += savedCount;
+
+      // Update last processed ID (items are in DESC order, so first item is newest)
+      if (retainedItems.length > 0) {
+        await updateLastProcessedId(env.RSS_TRACKER, boardId, retainedItems[0].articleId);
+      }
 
       await purgeExpiredArticles(env.RSS_STORAGE, boardId, now);
     } catch (error) {
