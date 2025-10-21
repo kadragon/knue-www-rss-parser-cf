@@ -19,6 +19,12 @@
       "bucket_name": "knue-vectorstore"
     }
   ],
+  "kv_namespaces": [
+    {
+      "binding": "RSS_TRACKER",
+      "id": "17a8c5a393544763aa7a68204834cc7c"
+    }
+  ],
   "vars": {
     "RSS_FEED_BASE_URL": "https://www.knue.ac.kr/rssBbsNtt.do",
     "BOARD_IDS": "25,26,11,207,28,256",
