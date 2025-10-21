@@ -22,16 +22,29 @@ interface BatchResult {
 
 const RETENTION_YEARS = 2;
 const R2_LIST_PAGE_SIZE = 1000;
+const R2_DELETE_CHUNK_SIZE = 1000;
 
 async function getLastProcessedId(kv: KVNamespace, boardId: string): Promise<number> {
   const key = `rss-tracker:${boardId}`;
   const value = await kv.get(key);
-  return value ? parseInt(value, 10) : 0;
+  if (!value) {
+    return 0;
+  }
+  const numericId = parseInt(value, 10);
+  if (isNaN(numericId)) {
+    console.warn(`[Board ${boardId}] Invalid lastProcessedId in KV: "${value}", resetting to 0`);
+    return 0;
+  }
+  return numericId;
 }
 
 async function updateLastProcessedId(kv: KVNamespace, boardId: string, articleId: string): Promise<void> {
   const key = `rss-tracker:${boardId}`;
   const numericId = parseInt(articleId, 10);
+  if (isNaN(numericId)) {
+    console.error(`[Board ${boardId}] Attempted to update last processed ID with invalid articleId: "${articleId}"`);
+    return;
+  }
   await kv.put(key, numericId.toString());
 }
 
@@ -62,7 +75,9 @@ function filterItemsByRetention(
     const itemId = parseInt(item.articleId, 10);
 
     // Skip if already processed (ID DESC order means smaller IDs are already done)
-    if (itemId <= lastProcessedId) {
+    if (isNaN(itemId)) {
+      console.warn(`[Board ${boardId}] Item with invalid articleId found: "${item.articleId}". It will be processed.`);
+    } else if (itemId <= lastProcessedId) {
       skippedCount++;
       continue;
     }
@@ -120,14 +135,17 @@ async function purgeExpiredArticles(
     cursor = hasMore ? nextCursor : undefined;
   }
 
-  // Step 2: Delete all expired keys after pagination completes
+  // Step 2: Delete all expired keys after pagination completes (in chunks to respect R2 1000-key limit)
   let deletedCount = 0;
   if (allKeysToDelete.length > 0) {
-    await bucket.delete(allKeysToDelete);
-    deletedCount = allKeysToDelete.length;
+    for (let i = 0; i < allKeysToDelete.length; i += R2_DELETE_CHUNK_SIZE) {
+      const chunk = allKeysToDelete.slice(i, i + R2_DELETE_CHUNK_SIZE);
+      await bucket.delete(chunk);
+      deletedCount += chunk.length;
 
-    for (const key of allKeysToDelete) {
-      console.log(`🗑️ [Board ${boardId}] Deleted expired article ${key}`);
+      for (const key of chunk) {
+        console.log(`🗑️ [Board ${boardId}] Deleted expired article ${key}`);
+      }
     }
 
     console.log(`🧹 [Board ${boardId}] Removed ${deletedCount} expired articles older than ${retentionCutoff}`);
@@ -177,37 +195,35 @@ async function processBoardBatch(
         console.log(`⚠ [Board ${boardId}] Pruned ${expiredCount} items past retention window (${retentionCutoff})`);
       }
 
-      if (retainedItems.length === 0) {
-        console.log(`ℹ️ [Board ${boardId}] No new items to process`);
-        continue;
-      }
-
-      const itemsWithPreview = await Promise.all(
-        retainedItems.map(item => enrichItemWithPreview(item, previewConfig, { boardId }))
-      );
-
-      let savedCount = 0;
-      let duplicateCount = 0;
-
-      for (const item of itemsWithPreview) {
-        const markdown = convertToMarkdown({ ...feed, items: [item] }, now);
-        const { saved, skipped } = await saveArticlesToR2(env.RSS_STORAGE, boardId, markdown, item);
-
-        if (saved) {
-          savedCount++;
-        } else if (skipped) {
-          duplicateCount++;
-        }
-      }
-
-      console.log(`✓ [Board ${boardId}] Saved ${savedCount} articles, ${duplicateCount} duplicates`);
-      totalSaved += savedCount;
-
-      // Update last processed ID (items are in DESC order, so first item is newest)
       if (retainedItems.length > 0) {
+        const itemsWithPreview = await Promise.all(
+          retainedItems.map(item => enrichItemWithPreview(item, previewConfig, { boardId }))
+        );
+
+        let savedCount = 0;
+        let duplicateCount = 0;
+
+        for (const item of itemsWithPreview) {
+          const markdown = convertToMarkdown({ ...feed, items: [item] }, now);
+          const { saved, skipped } = await saveArticlesToR2(env.RSS_STORAGE, boardId, markdown, item);
+
+          if (saved) {
+            savedCount++;
+          } else if (skipped) {
+            duplicateCount++;
+          }
+        }
+
+        console.log(`✓ [Board ${boardId}] Saved ${savedCount} articles, ${duplicateCount} duplicates`);
+        totalSaved += savedCount;
+
+        // Update last processed ID (items are in DESC order, so first item is newest)
         await updateLastProcessedId(env.RSS_TRACKER, boardId, retainedItems[0].articleId);
+      } else {
+        console.log(`ℹ️ [Board ${boardId}] No new items to process`);
       }
 
+      // Always purge expired articles, even if no new items
       await purgeExpiredArticles(env.RSS_STORAGE, boardId, now);
     } catch (error) {
       totalErrors++;
